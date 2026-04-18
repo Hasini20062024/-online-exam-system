@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Result | {{ attempt.exam.title }}{% endblock %}
+
+{% block content %}
+<section class="grid two">
+    <article class="panel">
+        <p class="eyebrow">Student Result</p>
+        <h2>{{ attempt.exam.title }}</h2>
+        <div class="result-stats">
+            <div><span>Course</span><strong>{{ attempt.exam.course.name }}</strong></div>
+            <div><span>Score</span><strong>{{ attempt.score }}/{{ attempt.total_questions }}</strong></div>
+            <div><span>Percentage</span><strong>{{ attempt.percentage }}%</strong></div>
+            <div><span>Time Taken</span><strong>{{ attempt.time_taken }}</strong></div>
+            <div><span>Submitted At</span><strong>{{ attempt.submitted_at|date:"d M Y H:i:s" }}</strong></div>
+            <div><span>Course Rank</span><strong>{% if ranking %}{{ ranking.rank }}{% else %}-{% endif %}</strong></div>
+        </div>
+    </article>
+</section>
+
+<section class="panel">
+    <h3>Question Wise Breakdown</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Question</th>
+                    <th>Your Answer</th>
+                    <th>Correct Answer</th>
+                    <th>Result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for answer in answers %}
+                    <tr class="{% if answer.selected_option and answer.is_correct %}row-success{% elif answer.selected_option %}row-danger{% else %}row-neutral{% endif %}">
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ answer.question.question_text }}</td>
+                        <td>{{ answer.selected_option_text }}</td>
+                        <td>{{ answer.correct_option_text }}</td>
+                        <td>
+                            {% if answer.selected_option and answer.is_correct %}
+                                Correct
+                            {% elif answer.selected_option %}
+                                Wrong
+                            {% else %}
+                                Not Attempted
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

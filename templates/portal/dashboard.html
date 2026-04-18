@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | Exam Portal{% endblock %}
+
+{% block content %}
+{% if role == 'admin' %}
+    <section class="grid four">
+        <article class="panel stat-card"><span>Total Courses</span><strong>{{ summary.total_courses }}</strong></article>
+        <article class="panel stat-card"><span>Total Faculty</span><strong>{{ summary.total_faculty }}</strong></article>
+        <article class="panel stat-card"><span>Total Students</span><strong>{{ summary.total_students }}</strong></article>
+        <article class="panel stat-card"><span>Total Exams</span><strong>{{ summary.total_exams }}</strong></article>
+    </section>
+
+    <section class="grid two">
+        <form method="post" action="{% url 'create_course' %}" class="panel form-panel">
+            {% csrf_token %}
+            <h3>Create Course</h3>
+            {% for field in course_form %}
+                <label class="field">
+                    <span>{{ field.label }}</span>
+                    {% if field.name == 'faculty_members' %}
+                        <div class="checkbox-group">
+                            {{ field }}
+                        </div>
+                        <small class="muted">Select one or more existing faculty members for this course.</small>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+                </label>
+            {% endfor %}
+            <button class="btn btn-primary" type="submit">Create Course</button>
+        </form>
+
+        <form method="post" action="{% url 'create_faculty' %}" class="panel form-panel">
+            {% csrf_token %}
+            <h3>Create Faculty Account</h3>
+            {% for field in faculty_form %}
+                <label class="field">
+                    <span>{{ field.label }}</span>
+                    {{ field }}
+                </label>
+            {% endfor %}
+            <button class="btn btn-primary" type="submit">Create Faculty</button>
+        </form>
+    </section>
+
+    {% if new_faculty_credentials %}
+        <section class="panel">
+            <h3>New Faculty Login Credentials</h3>
+            <div class="credential-grid">
+                <div><span>Name</span><strong>{{ new_faculty_credentials.full_name }}</strong></div>
+                <div><span>Username</span><strong>{{ new_faculty_credentials.username }}</strong></div>
+                <div><span>Temporary Password</span><strong>{{ new_faculty_credentials.password }}</strong></div>
+            </div>
+            <p class="muted">Share these with the faculty member. They can log in from the normal login page using the username and temporary password shown above.</p>
+        </section>
+    {% endif %}
+
+    <section class="panel">
+        <h3>All Courses</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Course Name</th>
+                        <th>Code</th>
+                        <th>Academic Year</th>
+                        <th>Assigned Faculty</th>
+                        <th>Students</th>
+                        <th>Assign Another Faculty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in course_rows %}
+                        <tr>
+                            <td>{{ row.course.name }}</td>
+                            <td>{{ row.course.code }}</td>
+                            <td>{{ row.course.academic_year }}</td>
+                            <td>
+                                {% for faculty in row.course.faculty_members.all %}
+                                    {{ faculty.profile.full_name }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    Not assigned
+                                {% endfor %}
+                            </td>
+                            <td>{{ row.course.enrolled_count }}</td>
+                            <td>
+                                {% if row.available_faculty %}
+                                    <form method="post" action="{% url 'assign_faculty_to_course' row.course.id %}" class="inline-form">
+                                        {% csrf_token %}
+                                        <select name="faculty_user_id">
+                                            <option value="">Select faculty</option>
+                                            {% for faculty in row.available_faculty %}
+                                                <option value="{{ faculty.user.id }}">{{ faculty.full_name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="btn btn-ghost btn-small" type="submit">Assign</button>
+                                    </form>
+                                {% else %}
+                                    <span class="muted">All faculty already assigned</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="6">No courses yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h3>Faculty Directory</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Employee ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for faculty in faculty_profiles %}
+                        <tr>
+                            <td>{{ faculty.full_name }}</td>
+                            <td>{{ faculty.user.username }}</td>
+                            <td>{{ faculty.user.email }}</td>
+                            <td>{{ faculty.employee_id }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4">No faculty created yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% elif role == 'faculty' %}
+    <section class="grid two">
+        <article class="panel">
+            <h3>My Courses</h3>
+            <div class="card-list">
+                {% for row in faculty_course_rows %}
+                    <div class="mini-card">
+                        <div>
+                            <strong>{{ row.course.name }}</strong>
+                            <p>{{ row.course.code }} | {{ row.course.academic_year }}</p>
+                            <p class="muted">Enrolled Students: {{ row.enrolled_count }}</p>
+                            <p class="muted">Exams Created: {{ row.exam_count }}</p>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="muted">No assigned courses yet.</p>
+                {% endfor %}
+            </div>
+        </article>
+
+        <div class="stack">
+            <form method="post" action="{% url 'upload_questions_excel' %}" class="panel form-panel" enctype="multipart/form-data">
+                {% csrf_token %}
+                <h3>Question Bank Management</h3>
+                <p class="muted">Excel columns must be exactly: `question_text`, `option_a`, `option_b`, `option_c`, `option_d`, `correct_answer`, `difficulty`.</p>
+                <label class="field">
+                    <span>Academic Year</span>
+                    <select name="academic_year" required>
+                        <option value="">Select academic year</option>
+                        {% for year in upload_years %}
+                            <option value="{{ year }}">{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Course</span>
+                    <select name="course_id" id="faculty-upload-course" required>
+                        <option value="">Select course</option>
+                        {% for course in assigned_courses %}
+                            <option value="{{ course.id }}" data-year="{{ course.academic_year }}">{{ course.code }} - {{ course.name }} ({{ course.academic_year }})</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label class="field">
+                    <span>Excel File</span>
+                    <input type="file" name="question_file" accept=".xlsx,.xls" required>
+                </label>
+                {% if upload_summary %}
+                    <div class="upload-banner">
+                        <strong>Upload successful</strong>
+                        <span>{{ upload_summary.total }} questions added to {{ upload_summary.course }}</span>
+                        <span>Easy {{ upload_summary.easy }}, Medium {{ upload_summary.medium }}, Hard {{ upload_summary.hard }}</span>
+                    </div>
+                {% endif %}
+                <button class="btn btn-primary" type="submit">Upload Excel</button>
+            </form>
+
+            <form method="post" action="{% url 'create_question' %}" class="panel form-panel">
+                {% csrf_token %}
+                <h3>Manual Question Entry</h3>
+                <p class="muted">Use this if you want to add a single MCQ without Excel.</p>
+                {% for field in question_form %}
+                    <label class="field">
+                        <span>{{ field.label }}</span>
+                        {{ field }}
+                    </label>
+                {% endfor %}
+                <button class="btn btn-primary" type="submit">Add Question</button>
+            </form>
+
+            <form method="post" action="{% url 'create_exam' %}" class="panel form-panel">
+                {% csrf_token %}
+                <h3>Exam Scheduling</h3>
+                {% for field in exam_form %}
+                    <label class="field">
+                        <span>{{ field.label }}</span>
+                        {{ field }}
+                    </label>
+                {% endfor %}
+                <button class="btn btn-primary" type="submit">Schedule Exam</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h3>Created Exams</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Course</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>k</th>
+                        <th>Submissions</th>
+                        <th>Status</th>
+                        <th>Results</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in exams %}
+                        <tr>
+                            <td>{{ row.exam.title }}</td>
+                            <td>{{ row.exam.course.code }}</td>
+                            <td>{{ row.exam.start_at|date:"d M Y H:i" }}</td>
+                            <td>{{ row.exam.end_at|date:"d M Y H:i" }}</td>
+                            <td>{{ row.exam.question_count }}</td>
+                            <td>{{ row.exam.total_submissions }}</td>
+                            <td>{{ row.status }}</td>
+                            <td><a class="btn btn-ghost btn-small" href="{% url 'faculty_exam_results' row.exam.id %}">View Results</a></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="8">No exams scheduled yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% else %}
+    <section class="grid two">
+        <article class="panel">
+            <h3>Course Enrollment</h3>
+            <div class="card-list">
+                {% for course in available_courses %}
+                    <div class="mini-card">
+                        <div>
+                            <strong>{{ course.name }}</strong>
+                            <p>{{ course.code }} | {{ course.academic_year }}</p>
+                            <p class="muted">{{ course.description }}</p>
+                        </div>
+                        <form method="post" action="{% url 'enroll_course' course.id %}">
+                            {% csrf_token %}
+                            <button class="btn btn-primary" type="submit">Enroll</button>
+                        </form>
+                    </div>
+                {% empty %}
+                    <p class="muted">No open courses available for your current academic year.</p>
+                {% endfor %}
+            </div>
+        </article>
+
+        <article class="panel">
+            <h3>My Courses</h3>
+            <div class="card-list">
+                {% for course in my_courses %}
+                    <div class="mini-card">
+                        <div>
+                            <strong>{{ course.name }}</strong>
+                            <p>{{ course.code }}</p>
+                            <p class="muted">
+                                Faculty:
+                                {% for faculty in course.faculty_members.all %}
+                                    {{ faculty.profile.full_name }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    Not assigned
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
+                {% empty %}
+                    <p class="muted">You have not enrolled in any courses yet.</p>
+                {% endfor %}
+            </div>
+        </article>
+    </section>
+
+    <section class="panel">
+        <h3>My Exams</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Exam Title</th>
+                        <th>Course</th>
+                        <th>Start</th>
+                        <th>Duration</th>
+                        <th>Questions</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in exam_rows %}
+                        <tr>
+                            <td>{{ row.exam.title }}</td>
+                            <td>{{ row.exam.course.code }}</td>
+                            <td>{{ row.exam.start_at|date:"d M Y H:i" }}</td>
+                            <td>{{ row.exam.duration_minutes }} mins</td>
+                            <td>{{ row.exam.question_count }}</td>
+                            <td>{{ row.status }}</td>
+                            <td>
+                                {% if row.attempt and row.attempt.status == 'submitted' %}
+                                    <a class="btn btn-ghost btn-small" href="{% url 'result_detail' row.attempt.id %}">View Result</a>
+                                {% elif row.can_attempt %}
+                                    <a class="btn btn-primary btn-small" href="{% url 'start_exam' row.exam.id %}">Attempt Exam</a>
+                                {% else %}
+                                    <button class="btn btn-disabled btn-small" type="button" disabled>Attempt Exam</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="7">No exams available yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <h3>My Results</h3>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Exam</th>
+                        <th>Course</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Rank</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attempt in completed_attempts %}
+                        <tr>
+                            <td><a href="{% url 'result_detail' attempt.id %}">{{ attempt.exam.title }}</a></td>
+                            <td>{{ attempt.exam.course.code }}</td>
+                            <td>{{ attempt.score }}/{{ attempt.total_questions }}</td>
+                            <td>{{ attempt.percentage }}%</td>
+                            <td>
+                                {% for row in exam_rows %}
+                                    {% if row.exam.id == attempt.exam.id and row.ranking %}
+                                        {{ row.ranking.rank }}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="5">No completed exams yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endif %}
+
+{% if role == 'faculty' %}
+<script>
+    const yearSelect = document.querySelector('select[name="academic_year"]');
+    const courseSelect = document.getElementById('faculty-upload-course');
+
+    if (yearSelect && courseSelect) {
+        const courseOptions = Array.from(courseSelect.querySelectorAll('option'));
+        const syncCourses = () => {
+            const selectedYear = yearSelect.value;
+            courseOptions.forEach((option, index) => {
+                if (index === 0) {
+                    option.hidden = false;
+                    return;
+                }
+                option.hidden = selectedYear && option.dataset.year !== selectedYear;
+                if (option.hidden && option.selected) {
+                    courseSelect.value = '';
+                }
+            });
+        };
+        yearSelect.addEventListener('change', syncCourses);
+        syncCourses();
+    }
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Exam Portal{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">Online Examination Management Portal</p>
+                <h1>Exam Engine</h1>
+            </div>
+            {% if request.user.is_authenticated %}
+                <div class="topbar-actions">
+                    <div class="user-chip">
+                        <strong>{{ request.user.profile.full_name }}</strong>
+                        <span>{{ request.user.profile.get_role_display }}</span>
+                    </div>
+                    <a class="btn btn-ghost" href="{% url 'logout' %}">Logout</a>
+                </div>
+            {% endif %}
+        </header>
+
+        {% if messages %}
+            <section class="messages">
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ exam.title }} | Attempt Exam{% endblock %}
+
+{% block content %}
+<section class="exam-layout" data-exam-root data-remaining="{{ remaining_seconds }}">
+    <aside class="panel exam-sidebar">
+        <p class="eyebrow">{{ exam.course.code }}</p>
+        <h2>{{ exam.title }}</h2>
+        <div class="timer-box">
+            <span>Time Remaining</span>
+            <strong id="countdown">00:00</strong>
+        </div>
+        <p class="muted">Question navigation preserves selected options while you move across the paper.</p>
+        <div class="question-palette" id="question-palette">
+            {% for answer in answers %}
+                <button class="palette-box {% if forloop.first %}active{% endif %}" type="button" data-jump="{{ forloop.counter0 }}">
+                    {{ forloop.counter }}
+                </button>
+            {% endfor %}
+        </div>
+        <button class="btn btn-primary" type="submit" form="exam-form" id="submit-exam-button">Submit Exam</button>
+    </aside>
+
+    <form method="post" action="{% url 'submit_exam' attempt.id %}" class="panel exam-main" id="exam-form">
+        {% csrf_token %}
+        {% for answer in answers %}
+            <article class="question-card {% if forloop.first %}active{% endif %}" data-question-card>
+                <div class="question-head">
+                    <p class="eyebrow">Question {{ forloop.counter }} of {{ answers|length }}</p>
+                    <h3>{{ answer.question.question_text }}</h3>
+                </div>
+
+                <div class="option-list">
+                    {% for option in answer.shuffled_options %}
+                        <label class="option-card">
+                            <input type="radio" name="question_{{ answer.id }}" value="{{ option.index }}" {% if answer.selected_option == option.index %}checked{% endif %}>
+                            <span class="option-number">{{ option.index }}</span>
+                            <span>{{ option.text }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </article>
+        {% endfor %}
+
+        <div class="exam-controls">
+            <button class="btn btn-ghost" type="button" id="prev-question">Previous</button>
+            <button class="btn btn-ghost" type="button" id="next-question">Next</button>
+        </div>
+    </form>
+</section>
+
+<script src="{% static 'js/exam.js' %}"></script>
+{% endblock %}

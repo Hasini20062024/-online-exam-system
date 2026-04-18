@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Login | Exam Portal{% endblock %}
+
+{% block content %}
+<section class="auth-layout">
+    <form method="post" class="panel form-panel">
+        {% csrf_token %}
+        <h3>Login</h3>
+        {% for field in form %}
+            <label class="field">
+                <span>{{ field.label }}</span>
+                {{ field }}
+                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                {% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}
+            </label>
+        {% endfor %}
+        {% for error in form.non_field_errors %}<p class="error">{{ error }}</p>{% endfor %}
+        <button class="btn btn-primary" type="submit">Sign In</button>
+        <p class="muted">Student only registration is available from the link below.</p>
+        <a class="btn btn-ghost" href="{% url 'register' %}">Register as Student</a>
+    </form>
+
+    <div class="hero-card">
+        <p class="eyebrow">Role based platform</p>
+        <h2>Admin, faculty, and student workflows in one place</h2>
+        <p>Sign in with the credentials provided to you to access your dashboard and continue with the examination workflow.</p>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Leaderboard | {{ exam.title }}{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Faculty Results View</p>
+            <h2>{{ exam.title }} - {{ exam.course.code }}</h2>
+        </div>
+        <a class="btn btn-primary" href="{% url 'export_exam_results_csv' exam.id %}">Export CSV</a>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Student Full Name</th>
+                    <th>Username</th>
+                    <th>Score</th>
+                    <th>Percentage</th>
+                    <th>Submitted At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ranking in rankings %}
+                    <tr>
+                        <td>{{ ranking.rank }}</td>
+                        <td>{{ ranking.student.profile.full_name }}</td>
+                        <td>{{ ranking.student.username }}</td>
+                        <td>{{ ranking.score }}</td>
+                        <td>{{ ranking.percentage }}%</td>
+                        <td>{{ ranking.submitted_at|date:"d M Y H:i:s" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="6">No submissions yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

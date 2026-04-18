@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Register | Exam Portal{% endblock %}
+
+{% block content %}
+<section class="auth-layout">
+    <div class="hero-card">
+        <p class="eyebrow">Student self registration</p>
+        <h2>Create a student account with validation rules from the exam sheet</h2>
+        <p>Email and username are unique, username is alphanumeric, and the password rule is enforced before account creation.</p>
+    </div>
+
+    <form method="post" class="panel form-panel">
+        {% csrf_token %}
+        <h3>Create Student Account</h3>
+        {% for field in form %}
+            <label class="field">
+                <span>{{ field.label }}</span>
+                {{ field }}
+                {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+                {% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}
+            </label>
+        {% endfor %}
+        {% for error in form.non_field_errors %}<p class="error">{{ error }}</p>{% endfor %}
+        <button class="btn btn-primary" type="submit">Register</button>
+        <a class="btn btn-ghost" href="{% url 'login' %}">Back to Login</a>
+    </form>
+</section>
+{% endblock %}
